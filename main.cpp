@@ -124,7 +124,8 @@ int main(){
 		
 		//NOTE: most of the non-working shaders aren't working because they require a first pass
 		//to another framebuffer, which I haven't yet set up.
-		//FRAGMENT SHADER:	(uncomment a single shader at a time	
+		//FRAGMENT SHADER:	(uncomment a single frag shader at a time and don't forget to change 
+		//the active textures for each channel)
 		//"1.glsl"				//my test shader
 		//"2.glsl"				//minimalistic ray tracer
 		//"3.glsl"				//'Elevated' by Inigo Quilez -- not working
@@ -135,7 +136,7 @@ int main(){
 		//"8.glsl"				//'Shoreline' by S.Guillitte 
 		//"9.glsl"				//ray-traced geometric reflections
 		//"10.glsl"				//infinite roadway
-		//"11.glsl"				//ray-marched reflections
+		"11.glsl"				//ray-marched reflections
 		//"12.glsl"				//raindrop shader -- not working
 		//"13.glsl"				// by Morgan McGuire
 		//"14.glsl"				//FLUID SIM SHADER by Clement Roche
@@ -163,7 +164,7 @@ int main(){
 		//"36.glsl"				//Planet Shadertoy by Neinder Nijhoff
 		//"37.glsl"				//Tokyo by Neinder Nijhoff
 		//"38.glsl"				//Greek Temple by Inigo Quilez -- not working
-		"39.glsl"				//Mountains by David Hoskins
+		//"39.glsl"				//Mountains by David Hoskins
 		//"40.glsl"				//Sirenian Dawn by nimitz -- not working
 	);
 	experimentalFinal->use();
@@ -537,7 +538,7 @@ void setupFBOs() {
 			//"textures/blue noise.png"
 			//"textures/font1.png"
 			//"textures/greynoise.png"
-			//"textures/grey noise medium.png"
+			"textures/grey noise medium.png"
 			//"textures/grey noise small.png"
 			//"textures/lichen.jpg"
 			//"textures/london.jpg"
@@ -546,7 +547,7 @@ void setupFBOs() {
 			//"textures/organic3.jpg"
 			//"textures/organic4.jpg"
 			//"textures/pebbles.png"
-			"textures/rgba noise medium.png"
+			//"textures/rgba noise medium.png"
 			//"textures/rgba noise small.png"
 			//"textures/rock tiles.jpg"
 			//"textures/rusty metal.jpg"
@@ -574,7 +575,6 @@ void setupFBOs() {
 				//"textures/bayer.png"
 				//"textures/blue noise.png"
 				//"textures/font1.png"
-				//"textures/greynoise.png"
 				//"textures/grey noise medium.png"
 				//"textures/grey noise small.png"
 				//"textures/lichen.jpg"
