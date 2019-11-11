@@ -146,7 +146,7 @@ vec4 render(in vec3 ro, in vec3 rd, in ivec2 px)
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
-	vec2 p = fragCoord * 2.0; // (-iResolution.xy + 2.0*fragCoord.xy) / iResolution.y;
+	vec2 p = fragCoord * 24.0; // (-iResolution.xy + 2.0*fragCoord.xy) / iResolution.y;
 
 	vec2 m = iMouse.xy / iResolution.xy;
 

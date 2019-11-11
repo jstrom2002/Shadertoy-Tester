@@ -145,5 +145,23 @@
     <None Include="34.glsl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="35.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="36.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="37.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="38.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="39.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="40.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

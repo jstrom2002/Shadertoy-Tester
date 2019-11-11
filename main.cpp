@@ -129,7 +129,6 @@ int main(){
 		"experimentalvs.glsl", 
 		
 		//FRAGMENT SHADER:		
-		//"experimentalfs.glsl"	//
 		//"1.glsl"				//my test shader
 		//"2.glsl"				//minimalistic ray tracer
 		//"3.glsl"				//'Elevated' by Inigo Quilez -- not working
@@ -151,8 +150,8 @@ int main(){
 		//"19.glsl"				//Mandel-monster
 		//"20.glsl"				//Bone mandel
 		//"21.glsl"				//Skyline
-		//"22.glsl"				//Mystery mountains by David Hoskins
-		//"23.glsl"				//Clouds by Inigo Quilez
+		//"22.glsl"				//Mystery mountains by David Hoskins -- has issues
+		//"23.glsl"				//Clouds by Inigo Quilez -- requires a special noise texture that I cannot find
 		//"24.glsl"				//Oceanic by Frank Hugenrot
 		//"25.glsl"				//Star Nest by Pablo Roman Andiolli
 		//"26.glsl"				//Protean Clouds
@@ -163,15 +162,14 @@ int main(){
 		//"31.glsl"				//Fires
 		//"32.glsl"				//301's Fire Shader - Remix 3
 		//"33.glsl"				//Brady's Volumetric Fire
-		"34.glsl"				//Wind of Change by Roman Bobinev
-		//"35.glsl"				//
-		//"36.glsl"				//
-		//"37.glsl"				//
-		//"38.glsl"				//
-		//"39.glsl"				//
-		//"40.glsl"				//
+		//"34.glsl"				//Wind of Change by Roman Bobinev
+		//"35.glsl"				//GLSL smallpt
+		//"36.glsl"				//Planet Shadertoy by Neinder Nijhoff
+		//"37.glsl"				//Tokyo by Neinder Nijhoff
+		//"38.glsl"				//Greek Temple by Inigo Quilez -- not working
+		//"39.glsl"				//Mountains by David Hoskins
+		//"40.glsl"				//Sirenian Dawn by nimitz -- not working
 	);
-	//experimentalFinal = new Shader("experimentalvs.glsl", "experimentalFinalfs.glsl");
 	experimentalFinal->use();
 	experimentalFinal->setInt("iChannel0", 0);
 	experimentalFinal->setInt("iChannel1", 1);

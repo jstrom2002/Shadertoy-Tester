@@ -153,7 +153,13 @@
     <None Include="32.glsl" />
     <None Include="33.glsl" />
     <None Include="34.glsl" />
+    <None Include="35.glsl" />
+    <None Include="36.glsl" />
+    <None Include="37.glsl" />
+    <None Include="38.glsl" />
+    <None Include="39.glsl" />
     <None Include="4.glsl" />
+    <None Include="40.glsl" />
     <None Include="5.glsl" />
     <None Include="6.glsl" />
     <None Include="7.glsl" />
