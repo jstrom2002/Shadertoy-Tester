@@ -6,3 +6,4 @@ output. Most Shadertoy shaders will do a conversion to this range of values for 
 Also note that this progam is very not cross-platform, its set up to work on my Windows pc only so it might require so additional defines.
 
 Requires glfw3.
+Textures and other media taken from: https://shadertoyunofficial.wordpress.com/2019/07/23/shadertoy-media-files/
