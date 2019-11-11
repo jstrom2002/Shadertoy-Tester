@@ -15,7 +15,7 @@ uniform sampler2D iChannel1;			// input channel. XX = 2D/Cube
 uniform sampler2D iChannel2;			// input channel. XX = 2D/Cube
 uniform sampler2D iChannel3;			// input channel. XX = 2D/Cube
 uniform vec4      iDate;                 // (year, month, day, time in seconds)
-uniform float     iSampleRate = 441000;           // sound sample rate (i.e., 44100)
+uniform float     iSampleRate = 441000;  // sound sample rate (i.e., 44100)
 //======================================================================================================
 //======================================================================================================
 

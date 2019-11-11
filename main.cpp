@@ -41,7 +41,6 @@ Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = (float)SCR_WIDTH / 2.0;
 float lastY = (float)SCR_HEIGHT / 2.0;
 bool firstMouse = true;
-float walkVal = 10.4;
 
 // timing
 float deltaTime = 0.0f;
@@ -57,25 +56,16 @@ Shader* experimentalShader;
 bool mousePressed[3];
 glm::vec4 mouseVec;
 
-//VAOs
-unsigned int skyboxTexture;
-unsigned int cubeVAO, cubeVBO;
-unsigned int planeVAO, planeVBO;
-unsigned int cubeTexture;
-unsigned int floorTexture;
-
 //FBOs
 unsigned int experimentalFBO;
 unsigned int experimentalRBO;
-unsigned int particleRBO;
-unsigned int particleFBO;
-unsigned int particleTex;
 unsigned int mainFBO;
 unsigned int mainRBO;
 unsigned int mainTex;
 unsigned int pingpongFBO[2];
 unsigned int pingpongColorbuffers[2];
 unsigned int quadVAO;
+unsigned int firstBufferTarget[4];
 
 //textures
 unsigned int iChannel0;	
@@ -118,17 +108,23 @@ int main(){
 	}
 
 
-	//load shaders
 	glm::mat4 projection = glm::perspective(camera.Zoom, (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
 
-	experimentalShader = new Shader("experimentalvs.glsl", "experimentalfs.glsl");
+	//for 1st pass
+	experimentalShader = new Shader(
+		"experimentalvs.glsl", 
+		"experimentalfs.glsl"
+	);
 	
+	//for rendering final quad
 	experimentalFinal = new Shader(
 
 		//VERTEX SHADER:
 		"experimentalvs.glsl", 
 		
-		//FRAGMENT SHADER:		
+		//NOTE: most of the non-working shaders aren't working because they require a first pass
+		//to another framebuffer, which I haven't yet set up.
+		//FRAGMENT SHADER:	(uncomment a single shader at a time	
 		//"1.glsl"				//my test shader
 		//"2.glsl"				//minimalistic ray tracer
 		//"3.glsl"				//'Elevated' by Inigo Quilez -- not working
@@ -149,7 +145,7 @@ int main(){
 		//"18.glsl"				//Topologica VR
 		//"19.glsl"				//Mandel-monster
 		//"20.glsl"				//Bone mandel
-		//"21.glsl"				//Skyline
+		//"21.glsl"				//Skyline by otaviogood https://www.shadertoy.com/view/XtsSWs
 		//"22.glsl"				//Mystery mountains by David Hoskins -- has issues
 		//"23.glsl"				//Clouds by Inigo Quilez -- requires a special noise texture that I cannot find
 		//"24.glsl"				//Oceanic by Frank Hugenrot
@@ -167,7 +163,7 @@ int main(){
 		//"36.glsl"				//Planet Shadertoy by Neinder Nijhoff
 		//"37.glsl"				//Tokyo by Neinder Nijhoff
 		//"38.glsl"				//Greek Temple by Inigo Quilez -- not working
-		//"39.glsl"				//Mountains by David Hoskins
+		"39.glsl"				//Mountains by David Hoskins
 		//"40.glsl"				//Sirenian Dawn by nimitz -- not working
 	);
 	experimentalFinal->use();
@@ -184,8 +180,6 @@ int main(){
 	glEnable(GL_BLEND);
 	glDepthMask(GL_TRUE);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glAlphaFunc(GL_GREATER, 0.1);
-	glEnable(GL_ALPHA_TEST);
 
 	SceneDraw(window);//experimental -- non-functional
 
@@ -258,23 +252,13 @@ void SaveFramebufferToFile(int buff) {
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)//'esc' exits program
 		glfwSetWindowShouldClose(window, true);
 
-	float cameraSpeed = walkVal * deltaTime;
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera.ProcessKeyboard(FORWARD, cameraSpeed);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera.ProcessKeyboard(BACKWARD, cameraSpeed);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera.ProcessKeyboard(LEFT, cameraSpeed);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera.ProcessKeyboard(RIGHT, cameraSpeed);
-
-	if (glfwGetKey(window, GLFW_KEY_END) == GLFW_PRESS){
+	if (glfwGetKey(window, GLFW_KEY_END) == GLFW_PRESS){//screenshot button
 		SaveFramebufferToFile(0);
 	}
-	if (glfwGetKey(window, GLFW_KEY_HOME) == GLFW_PRESS) {
+	if (glfwGetKey(window, GLFW_KEY_HOME) == GLFW_PRESS) {//recenter camera
 		camera.Position = glm::vec3(0,0,0);
 	}
 }
@@ -362,8 +346,8 @@ unsigned int loadTexture(char const * path)
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 		stbi_image_free(data);
 	}
@@ -377,11 +361,43 @@ unsigned int loadTexture(char const * path)
 }///////////////////////////////////////////
 
 
+// utility function for loading a cubemap texture from file
+// ---------------------------------------------------
+unsigned int loadCubemap(std::vector<std::string> faces) {
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	int width, height, nrComponents;
+	for (unsigned int i = 0; i < faces.size(); i++)
+	{
+		unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrComponents, 0);
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			stbi_image_free(data);
+		}
+		else
+		{
+			std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+			stbi_image_free(data);
+		}
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return textureID;
+}///////////////////////////////////////////////////////////////////////
+
 // renderQuad() renders a 1x1 XY quad in NDC
-	// -----------------------------------------
+// -----------------------------------------
 void renderQuad() {
 	if (quadVAO == 0) {
-		float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+		float quadVertices[] = { 
+		// vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
 		// positions         // texCoords
 		-1.0f,  1.0f,  0.0f,  0.0f, 1.0f,
 		-1.0f, -1.0f,  0.0f,  0.0f, 0.0f,
@@ -414,59 +430,43 @@ void renderQuad() {
 
 void setupFBOs() {
 
-	glGenFramebuffers(1, &experimentalFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, experimentalFBO);
+	//setup up first-pass framebuffer
+	glGenFramebuffers(1, &mainFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, mainFBO);
+	// create a color attachment textures
+	glGenTextures(1, &mainTex);
 
-	glGenTextures(1, &iChannel0);
+	//create 4 possible targets for 1st pass
+	glGenTextures(4, firstBufferTarget);
 	glBindTexture(GL_TEXTURE_2D, iChannel0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, iChannel0, 0);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, iChannel1);
-	glBindTexture(GL_TEXTURE_2D, iChannel1);
+	glBindTexture(GL_TEXTURE_2D, firstBufferTarget[0]);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, iChannel1, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, firstBufferTarget[0], 0);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, iChannel2);
-	glBindTexture(GL_TEXTURE_2D, iChannel2);
+	glBindTexture(GL_TEXTURE_2D, firstBufferTarget[1]);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, iChannel2, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, firstBufferTarget[1], 0);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, iChannel3);
-	glBindTexture(GL_TEXTURE_2D, iChannel3);
+	glBindTexture(GL_TEXTURE_2D, firstBufferTarget[2]);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, iChannel3, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, firstBufferTarget[2], 0);
 
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		MessageBox(0, "intermediate framebuffer not complete!", 0, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-	///////////////////////////////
-
-	   
-	glGenFramebuffers(1, &mainFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, mainFBO);
-	// create a color attachment textures
-	glGenTextures(1, &mainTex);
-
-	glBindTexture(GL_TEXTURE_2D, mainTex);
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, camera.viewport.width, camera.viewport.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, camera.viewport.width, camera.viewport.height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glBindTexture(GL_TEXTURE_2D, firstBufferTarget[3]);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, camera.viewport.width, camera.viewport.height, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mainTex, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, firstBufferTarget[3], 0);
 
 	//add depth buffer in one
 	glGenRenderbuffers(1, &mainRBO);
@@ -476,7 +476,7 @@ void setupFBOs() {
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		MessageBox(0, "intermediate framebuffer not complete!", 0, 0);
+		MessageBox(0, "main framebuffer not complete!", 0, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
@@ -486,12 +486,6 @@ void setupFBOs() {
 	void setShaderInputs(float renderSeconds, int renderCycles) {
 		experimentalShader->use();
 		experimentalShader->setVec3("iResolution", glm::vec3(SCR_WIDTH, SCR_HEIGHT, SCR_WIDTH/SCR_HEIGHT));
-		//experimentalShader->setVec3("iResolution", glm::vec3(400, 400, 1));
-
-		//experimentalShader->setVec3("iChannelResolution[0]", glm::vec3(32, 32, 1));
-		//experimentalShader->setVec3("iChannelResolution[1]", glm::vec3(256,256, 1));
-		//experimentalShader->setVec3("iChannelResolution[2]", glm::vec3(1024, 1024, 1));
-		//experimentalShader->setVec3("iChannelResolution[3]", glm::vec3(1024, 1024, 1));
 		experimentalShader->setFloat("iTime", renderSeconds);
 		experimentalShader->setFloat("iTimeDelta", deltaTime);
 		experimentalShader->setInt("iFrame", renderCycles);
@@ -501,37 +495,180 @@ void setupFBOs() {
 
 		experimentalFinal->use();
 		experimentalFinal->setVec3("iResolution", glm::vec3(SCR_WIDTH, SCR_HEIGHT, SCR_WIDTH / SCR_HEIGHT));
+		
+		//need to change this value for the resolution of each texture
 		experimentalFinal->setVec3("iChannelResolution[0]", glm::vec3(SCR_WIDTH, SCR_HEIGHT, SCR_WIDTH / SCR_HEIGHT));
-		//experimentalShader->setVec3("iChannelResolution[0]", glm::vec3(400, 400, 1));
-		//experimentalShader->setVec3("iChannelResolution[1]", glm::vec3(400, 400, 1));
-		//experimentalShader->setVec3("iChannelResolution[2]", glm::vec3(400, 400, 1));
-		//experimentalShader->setVec3("iChannelResolution[3]", glm::vec3(400, 400, 1));
+		experimentalFinal->setVec3("iChannelResolution[1]", glm::vec3(SCR_WIDTH, SCR_HEIGHT, SCR_WIDTH / SCR_HEIGHT));
+		experimentalFinal->setVec3("iChannelResolution[2]", glm::vec3(SCR_WIDTH, SCR_HEIGHT, SCR_WIDTH / SCR_HEIGHT));
+		experimentalFinal->setVec3("iChannelResolution[3]", glm::vec3(SCR_WIDTH, SCR_HEIGHT, SCR_WIDTH / SCR_HEIGHT));
+
 		experimentalFinal->setFloat("iTime", renderSeconds);
 		experimentalFinal->setFloat("iTimeDelta", deltaTime);
 		experimentalFinal->setInt("iFrame", renderCycles);
 		experimentalShader->setFloat("iFrameRate", renderSeconds);
 		experimentalFinal->setVec4("iMouse", mouseVec);
 		experimentalFinal->setVec4("iDate", getDateVec());
-	}////
+	}//////////////////////////////////////////////////////
+
+
 
 	void SceneDraw(GLFWwindow* window) {
 		setupFBOs();
 		clock_t clk = clock();
 
-		unsigned int chan0 = loadTexture(
-			//"wood.png"
-			//"greynoise.png"
-			//"grey noise small.png"
-			//"london.jpg"
-			"rgba noise medium.png"
-			//"stars.jpg"
-			//"font1.png"
+		unsigned int chan0 = 
+			
+		//choose a texture:	
+		loadTexture(
+			//"textures/abstract1.jpg"
+			//"textures/abstract2.jpg"
+			//"textures/abstract3.jpg"
+			//"textures/bayer.png"
+			//"textures/blue noise.png"
+			//"textures/font1.png"
+			//"textures/greynoise.png"
+			//"textures/grey noise medium.png"
+			//"textures/grey noise small.png"
+			//"textures/lichen.jpg"
+			//"textures/london.jpg"
+			//"textures/organic1.jpg"
+			//"textures/organic2.jpg"
+			//"textures/organic3.jpg"
+			//"textures/organic4.jpg"
+			//"textures/pebbles.png"
+			"textures/rgba noise medium.png"
+			//"textures/rgba noise small.png"
+			//"textures/rock tiles.jpg"
+			//"textures/rusty metal.jpg"
+			//"textures/stars.jpg"
+			//"textures/wood.jpg"
 		);
-		unsigned int chan1 = loadTexture(
-			"greynoise.png"
-		);
-		//unsigned int chan2 = loadTexture("wood.png");
-		//unsigned int chan3 = loadTexture("wood.png");
+		
+		////or choose a cubemap:
+		//loadCubemap(
+		//	"cubemaps/forest"
+		//	//"cubemaps/forest blurred/"
+		//	//"cubemaps/st peters basillica/"
+		//	//"cubemaps/st peters basillica blurred/"
+		//	//"cubemaps/uffizi gallery/"
+		//	//"cubemaps/uffizi gallery blurred/"
+		//);
+
+
+		unsigned int chan1 = 
+			//choose a texture:	
+			loadTexture(
+				//"textures/abstract1.jpg"
+				//"textures/abstract2.jpg"
+				//"textures/abstract3.jpg"
+				//"textures/bayer.png"
+				//"textures/blue noise.png"
+				//"textures/font1.png"
+				//"textures/greynoise.png"
+				//"textures/grey noise medium.png"
+				//"textures/grey noise small.png"
+				//"textures/lichen.jpg"
+				//"textures/london.jpg"
+				//"textures/organic1.jpg"
+				//"textures/organic2.jpg"
+				//"textures/organic3.jpg"
+				//"textures/organic4.jpg"
+				//"textures/pebbles.png"
+				"textures/rgba noise medium.png"
+				//"textures/rgba noise small.png"
+				//"textures/rock tiles.jpg"
+				//"textures/rusty metal.jpg"
+				//"textures/stars.jpg"
+				//"textures/wood.jpg"
+			);
+
+		////or choose a cubemap:
+		//loadCubemap(
+		//	"cubemaps/forest"
+		//	//"cubemaps/forest blurred/"
+		//	//"cubemaps/st peters basillica/"
+		//	//"cubemaps/st peters basillica blurred/"
+		//	//"cubemaps/uffizi gallery/"
+		//	//"cubemaps/uffizi gallery blurred/"
+		//);
+
+
+		unsigned int chan2 =
+			//choose a texture:	
+			loadTexture(
+				//"textures/abstract1.jpg"
+				//"textures/abstract2.jpg"
+				//"textures/abstract3.jpg"
+				//"textures/bayer.png"
+				//"textures/blue noise.png"
+				//"textures/font1.png"
+				//"textures/greynoise.png"
+				//"textures/grey noise medium.png"
+				//"textures/grey noise small.png"
+				//"textures/lichen.jpg"
+				//"textures/london.jpg"
+				//"textures/organic1.jpg"
+				//"textures/organic2.jpg"
+				//"textures/organic3.jpg"
+				//"textures/organic4.jpg"
+				//"textures/pebbles.png"
+				"textures/rgba noise medium.png"
+				//"textures/rgba noise small.png"
+				//"textures/rock tiles.jpg"
+				//"textures/rusty metal.jpg"
+				//"textures/stars.jpg"
+				//"textures/wood.jpg"
+			);
+
+		////or choose a cubemap:
+		//loadCubemap(
+		//	"cubemaps/forest"
+		//	//"cubemaps/forest blurred/"
+		//	//"cubemaps/st peters basillica/"
+		//	//"cubemaps/st peters basillica blurred/"
+		//	//"cubemaps/uffizi gallery/"
+		//	//"cubemaps/uffizi gallery blurred/"
+		//);
+
+		unsigned int chan3 = 
+			//choose a texture:	
+			loadTexture(
+				//"textures/abstract1.jpg"
+				//"textures/abstract2.jpg"
+				//"textures/abstract3.jpg"
+				//"textures/bayer.png"
+				//"textures/blue noise.png"
+				//"textures/font1.png"
+				//"textures/greynoise.png"
+				//"textures/grey noise medium.png"
+				//"textures/grey noise small.png"
+				//"textures/lichen.jpg"
+				//"textures/london.jpg"
+				//"textures/organic1.jpg"
+				//"textures/organic2.jpg"
+				//"textures/organic3.jpg"
+				//"textures/organic4.jpg"
+				//"textures/pebbles.png"
+				"textures/rgba noise medium.png"
+				//"textures/rgba noise small.png"
+				//"textures/rock tiles.jpg"
+				//"textures/rusty metal.jpg"
+				//"textures/stars.jpg"
+				//"textures/wood.jpg"
+			);
+
+		////or choose a cubemap:
+		//loadCubemap(
+		//	"cubemaps/forest"
+		//	//"cubemaps/forest blurred/"
+		//	//"cubemaps/st peters basillica/"
+		//	//"cubemaps/st peters basillica blurred/"
+		//	//"cubemaps/uffizi gallery/"
+		//	//"cubemaps/uffizi gallery blurred/"
+		//);
+
+
+
 
 		while (!glfwWindowShouldClose(window)) {
 			float currentFrame = glfwGetTime();
@@ -543,21 +680,20 @@ void setupFBOs() {
 
 			//// render
 			//// ------
-			////draw 1st buffer
+			////draw 1st buffer -- currently not working!
 			//glBindFramebuffer(GL_FRAMEBUFFER, experimentalFBO);
 			//glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			////glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-			//glViewport(0, 0, 400, 400);
 			//experimentalShader->use();
 			//glActiveTexture(GL_TEXTURE0);
-			//glBindTexture(GL_TEXTURE_2D, chan0);//use past frame
-			////glActiveTexture(GL_TEXTURE1);
-			////glBindTexture(GL_TEXTURE_2D, chan1);
-			////glActiveTexture(GL_TEXTURE2);
-			////glBindTexture(GL_TEXTURE_2D, chan2);
-			////glActiveTexture(GL_TEXTURE3);
-			////glBindTexture(GL_TEXTURE_2D, chan3);
+			//glBindTexture(GL_TEXTURE_2D, iChannel0);
+			//glActiveTexture(GL_TEXTURE1);
+			//glBindTexture(GL_TEXTURE_2D, iChannel1);
+			//glActiveTexture(GL_TEXTURE2);
+			//glBindTexture(GL_TEXTURE_2D, iChannel2);
+			//glActiveTexture(GL_TEXTURE3);
+			//glBindTexture(GL_TEXTURE_2D, iChannel3);
 			//renderQuad();
 
 			//=======================================
@@ -569,13 +705,13 @@ void setupFBOs() {
 			glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 			experimentalFinal->use();
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, iChannel0);
-			//glActiveTexture(GL_TEXTURE1);
-			//glBindTexture(GL_TEXTURE_2D, iChannel1);
-			//glActiveTexture(GL_TEXTURE2);
-			//glBindTexture(GL_TEXTURE_2D, iChannel2);
-			//glActiveTexture(GL_TEXTURE3);
-			//glBindTexture(GL_TEXTURE_2D, iChannel3);
+			glBindTexture(GL_TEXTURE_2D, chan0);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, chan1);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, chan2);
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, chan3);
 			renderQuad();
 
 
@@ -590,9 +726,10 @@ void setupFBOs() {
 
 
 
-	glm::vec4 getDateVec() {//return vec4 of year, month, day, time in seconds
+	glm::vec4 getDateVec() {
+		//returns vec4 of year, month, day, time in seconds -- very much platform dependent
    		 
-		//get all the time data
+		//get all the time data from the std::chrono object
 		typedef std::chrono::duration<int, ratio_multiply<std::chrono::hours::period, ratio<24> >::type> days;
 		std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
 		std::chrono::system_clock::duration tp = now.time_since_epoch();
@@ -609,22 +746,6 @@ void setupFBOs() {
 		tm utc_tm = *gmtime(&tt);
 		tm local_tm = *localtime(&tt);
 		
-		//UTC time
-		//std::cout << utc_tm.tm_year + 1900 << '-';
-		//std::cout << utc_tm.tm_mon + 1 << '-';
-		//std::cout << utc_tm.tm_mday << ' ';
-		//std::cout << utc_tm.tm_hour << ':';
-		//std::cout << utc_tm.tm_min << ':';
-		//std::cout << utc_tm.tm_sec << '\n';
-
-		//local time
-		//std::cout << local_tm.tm_year + 1900 << '-';
-		//std::cout << local_tm.tm_mon + 1 << '-';
-		//std::cout << local_tm.tm_mday << ' ';
-		//std::cout << local_tm.tm_hour << ':';
-		//std::cout << local_tm.tm_min << ':';
-		//std::cout << local_tm.tm_sec << '\n';
-
 		glm::vec4 dateVec;
 		dateVec[0] = local_tm.tm_year + 1900;
 		dateVec[1] = local_tm.tm_mon;

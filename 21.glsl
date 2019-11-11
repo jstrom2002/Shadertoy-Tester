@@ -626,7 +626,7 @@ vec3 RayTrace(in vec2 fragCoord)
 		{
 			vec3 shadowPos = nudgePos + sunDir * iter;
 			float tempDist = DistanceToObject(shadowPos).x;
-			sunShadow *= saturate(tempDist*150.0);	// Shadow hardness
+			sunShadow *= clamp(tempDist*150.0, 0.0, 1.0);	// Shadow hardness
 			if (tempDist <= 0.0) break;
 
 			float walk = tempDist;
@@ -641,7 +641,7 @@ vec3 RayTrace(in vec2 fragCoord)
 			iter += max(0.01, walk);
 			if (iter > 4.5) break;
 		}
-		sunShadow = saturate(sunShadow);
+		sunShadow = clamp(sunShadow, 0.0, 1.0);
 
 		// make a few frequencies of noise to give it some texture
 		float n = 0.0;
@@ -793,7 +793,7 @@ vec3 RayTrace(in vec2 fragCoord)
 			// low-res way of making lines at the edges of car windows. Not sure I like it.
 			yfade *= (saturate(1.0 - abs(dFdx(windowMask)*dFdy(windowMask))*250.995));
 			finalColor += GetEnvMapSkyline(ref, sunDir, pos.y - 1.5)*0.3*yfade*max(0.4, sunShadow);
-			finalColor += clamp( (texture(iChannel0, ref).xyz - 0.35)*0.15*max(0.2, sunShadow), 0.0, 1.0 );
+			finalColor += clamp((texture(iChannel0, ref).xyz- 0.35) *0.15 *max(0.2, sunShadow), 0.0, 1.0);
 		}
 		// reflections for building windows
 		if (windowRef != 0.0)
