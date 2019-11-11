@@ -8,3 +8,5 @@ Also note that this progam is very not cross-platform, its set up to work on my 
 
 Requires glfw3.
 Textures and other media taken from: https://shadertoyunofficial.wordpress.com/2019/07/23/shadertoy-media-files/
+
+No copywrite or anything on this code, do what you like with it. However, all shadertoy shaders are someone else's IP.
