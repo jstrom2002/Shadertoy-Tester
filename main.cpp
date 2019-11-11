@@ -136,7 +136,7 @@ int main(){
 		//"8.glsl"				//'Shoreline' by S.Guillitte 
 		//"9.glsl"				//ray-traced geometric reflections
 		//"10.glsl"				//infinite roadway
-		"11.glsl"				//ray-marched reflections
+		//"11.glsl"				//ray-marched reflections
 		//"12.glsl"				//raindrop shader -- not working
 		//"13.glsl"				// by Morgan McGuire
 		//"14.glsl"				//FLUID SIM SHADER by Clement Roche
@@ -164,7 +164,7 @@ int main(){
 		//"36.glsl"				//Planet Shadertoy by Neinder Nijhoff
 		//"37.glsl"				//Tokyo by Neinder Nijhoff
 		//"38.glsl"				//Greek Temple by Inigo Quilez -- not working
-		//"39.glsl"				//Mountains by David Hoskins
+		"39.glsl"				//Mountains by David Hoskins
 		//"40.glsl"				//Sirenian Dawn by nimitz -- not working
 	);
 	experimentalFinal->use();
