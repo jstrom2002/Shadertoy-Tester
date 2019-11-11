@@ -118,7 +118,7 @@ float fbm_4(in vec3 x)
 	float b = 0.5;
 	for (int i = 0; i < 4; i++)
 	{
-		float n = noise(x);
+		float n = noise(x.xy);
 		a += b * n;
 		b *= s;
 		x = f * m3*x;
@@ -138,7 +138,7 @@ vec4 fbmd_8(in vec3 x)
 		0.0, 0.0, 1.0);
 	for (int i = 0; i < 7; i++)
 	{
-		vec4 n = noised(x);
+		vec4 n = vec4(noised(x.xy), 1.0);
 		a += b * n.x;          // accumulate values		
 		d += b * m*n.yzw;      // accumulate derivatives
 		b *= s;
