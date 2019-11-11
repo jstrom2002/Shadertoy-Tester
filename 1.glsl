@@ -21,6 +21,10 @@ uniform float     iSampleRate = 441000;           // sound sample rate (i.e., 44
 
 
 
+/*========================================================
+TEST SHADER by Jeff Strom -- mostly just hash and noise 
+functions that I'm playing with to try to create shapes
+=========================================================*/
 float hash1(vec2 p)
 {
 	p = 50.0*fract(p*0.3183099);
