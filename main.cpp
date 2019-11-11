@@ -361,17 +361,27 @@ unsigned int loadTexture(char const * path)
 }///////////////////////////////////////////
 
 
-// utility function for loading a cubemap texture from file
-// ---------------------------------------------------
-unsigned int loadCubemap(std::vector<std::string> faces) {
+// utility function for loading a cubemap texture from cubemap folder path
+// ----------------------------------------------------------------------
+unsigned int loadCubemap(std::string fileName) {
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
 	int width, height, nrComponents;
-	for (unsigned int i = 0; i < faces.size(); i++)
+	for (unsigned int i = 0; i < fileName.size(); i++)
 	{
-		unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrComponents, 0);
+		//get proper file name for each face from folder path -- assumes all files are named 'posX.jpg', etc
+		std::string fileNameTemp = fileName;
+		if      (i == 0) { fileNameTemp.append("posX.jpg"); }
+		else if (i == 1) { fileNameTemp.append("negX.jpg"); }
+		else if (i == 2) { fileNameTemp.append("posY.jpg"); }
+		else if (i == 3) { fileNameTemp.append("negY.jpg"); }
+		else if (i == 4) { fileNameTemp.append("posZ.jpg"); }
+		else if (i == 5) { fileNameTemp.append("negZ.jpg"); }
+
+
+		unsigned char *data = stbi_load(fileNameTemp.c_str(), &width, &height, &nrComponents, 0);
 		if (data)
 		{
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -379,7 +389,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
 		}
 		else
 		{
-			std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+			std::cout << "Cubemap texture failed to load at path: " << fileNameTemp[i] << std::endl;
 			stbi_image_free(data);
 		}
 	}
