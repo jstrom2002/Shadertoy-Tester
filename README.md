@@ -8,5 +8,5 @@ glfw3
 STBI  
 
 ### Notes ###
-Textures and other media taken from: https://shadertoyunofficial.wordpress.com/2019/07/23/shadertoy-media-files/.
+Fragment shaders copied from ShaderToy are numbered .glsl files. Textures and other media taken from: https://shadertoyunofficial.wordpress.com/2019/07/23/shadertoy-media-files/.
 All shadertoy shaders are not my intellectual property.
