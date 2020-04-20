@@ -1,12 +1,11 @@
-# Shadertoy-Tester
-OpenGL program to quickly load and test Shadertoy's shaders on my machine.
-Somewhat hastily slapped together, only uses the default framebuffer.
+# Shadertoy-Tester #
+OpenGL program to quickly load and test Shadertoy's shaders locally.
 
-Please note that the mainImage() method has an input, fragCoord, that this program defines as bounded between [0,1] from the vertex shader
-output. Most Shadertoy shaders will do a conversion to this range of values for the uv coordinates, so this must be fixed.
-Also note that this progam is very not cross-platform, its set up to work on my Windows pc only so it might require so additional defines.
+### Dependencies ###
+OpenGL
+glew
+glfw3
 
-Requires glfw3.
-Textures and other media taken from: https://shadertoyunofficial.wordpress.com/2019/07/23/shadertoy-media-files/
-
-No copywrite or anything on this code, do what you like with it. However, all shadertoy shaders are someone else's IP.
+### Notes ###
+Textures and other media taken from: https://shadertoyunofficial.wordpress.com/2019/07/23/shadertoy-media-files/.
+All shadertoy shaders are not my intellectual property.
