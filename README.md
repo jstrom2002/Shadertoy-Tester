@@ -4,7 +4,7 @@ OpenGL program to quickly load and test Shadertoy's shaders locally.
 ### Dependencies ###
 OpenGL  
 glew  
-glfw3 
+glfw3  
 STBI  
 
 ### Notes ###
